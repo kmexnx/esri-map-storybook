@@ -21,15 +21,38 @@ const config: StorybookConfig = {
     },
   },
   viteFinal: async (config) => {
-    // Ensure ESRI modules are properly handled
+    // ESRI ArcGIS specific configuration
     config.optimizeDeps = {
       ...config.optimizeDeps,
-      include: ['@arcgis/core', ...(config.optimizeDeps?.include ?? [])],
+      include: [
+        '@arcgis/core/geometry',
+        '@arcgis/core/layers/FeatureLayer',
+        '@arcgis/core/layers/GraphicsLayer',
+        '@arcgis/core/Map',
+        '@arcgis/core/views/MapView',
+        '@arcgis/core/Graphic',
+        '@arcgis/core/geometry/Point',
+        '@arcgis/core/geometry/Polyline',
+        '@arcgis/core/geometry/Polygon',
+        '@arcgis/core/symbols/SimpleMarkerSymbol',
+        '@arcgis/core/symbols/SimpleLineSymbol',
+        '@arcgis/core/symbols/SimpleFillSymbol',
+        ...(config.optimizeDeps?.include ?? [])
+      ],
+      exclude: ['@arcgis/core', ...(config.optimizeDeps?.exclude ?? [])]
     };
     
     config.define = {
       ...config.define,
       global: 'globalThis',
+    };
+    
+    // Allow filesystem access for ESRI assets
+    config.server = {
+      ...config.server,
+      fs: {
+        allow: ['..', ...((config.server?.fs as any)?.allow ?? [])]
+      }
     };
     
     return config;

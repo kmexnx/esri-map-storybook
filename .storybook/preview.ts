@@ -1,4 +1,6 @@
 import type { Preview } from '@storybook/react';
+
+// Import ESRI CSS - this is critical for proper map rendering
 import '@arcgis/core/assets/esri/themes/light/main.css';
 
 const preview: Preview = {
@@ -9,6 +11,9 @@ const preview: Preview = {
         color: /(background|color)$/i,
         date: /Date$/i,
       },
+    },
+    docs: {
+      toc: true,
     },
   },
 };
