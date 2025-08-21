@@ -38,6 +38,9 @@ cd esri-map-storybook
 
 # Install dependencies
 npm install
+
+# 🚨 IMPORTANT: Copy ESRI assets for proper functionality
+cp -r node_modules/@arcgis/core/assets public/
 ```
 
 ### Development
@@ -59,6 +62,46 @@ npm run build
 # Build Storybook
 npm run build-storybook
 ```
+
+## 🚨 Troubleshooting ESRI Issues
+
+If you encounter the error:
+```
+Error: Failed to resolve entry for package "@arcgis/core"
+```
+
+**Quick Fix:**
+```bash
+# 1. Copy ESRI assets to public directory
+cp -r node_modules/@arcgis/core/assets public/
+
+# 2. Clear Vite cache
+rm -rf node_modules/.vite
+
+# 3. Restart dev server
+npm run dev
+```
+
+**Alternative Solutions:**
+
+1. **Delete node_modules and reinstall:**
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm install
+   cp -r node_modules/@arcgis/core/assets public/
+   ```
+
+2. **Use CDN instead (add to index.html):**
+   ```html
+   <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css">
+   <script src="https://js.arcgis.com/4.30/"></script>
+   ```
+
+3. **Check if assets exist:**
+   ```bash
+   ls public/assets/esri
+   # Should show folders like: css, fonts, images, themes, etc.
+   ```
 
 ## Usage
 
@@ -229,6 +272,24 @@ src/
 │   └── mapUtils.ts             # Map utility functions
 └── main.tsx                    # Application entry point
 ```
+
+## Common Issues & Solutions
+
+### 1. ESRI Module Resolution
+**Issue**: `Failed to resolve entry for package "@arcgis/core"`
+**Solution**: Copy assets and clear cache as shown above
+
+### 2. Maps Not Rendering
+**Issue**: Blank map container or loading indefinitely
+**Solution**: Ensure ESRI CSS is imported and assets are available
+
+### 3. TypeScript Errors
+**Issue**: Type errors with ESRI modules
+**Solution**: The project includes proper TypeScript definitions
+
+### 4. Storybook Issues
+**Issue**: Stories not loading or ESRI components failing
+**Solution**: Storybook config is pre-configured for ESRI compatibility
 
 ## Contributing
 
