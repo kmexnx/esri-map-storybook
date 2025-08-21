@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { EsriMapView } from './EsriMapView';
 import { MapLayer } from '../types/map.types';
 
-const meta = {
+const meta: Meta<typeof EsriMapView> = {
   title: 'Components/EsriMapView',
   component: EsriMapView,
   parameters: {
@@ -44,7 +44,7 @@ const meta = {
     }
   },
   tags: ['autodocs']
-} satisfies Meta<typeof EsriMapView>;
+};
 
 export default meta;
 type Story = StoryObj<typeof meta>;
