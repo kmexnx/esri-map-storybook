@@ -5,20 +5,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: [
-      '@arcgis/core/geometry',
-      '@arcgis/core/layers/FeatureLayer',
-      '@arcgis/core/layers/GraphicsLayer',
-      '@arcgis/core/Map',
-      '@arcgis/core/views/MapView',
-      '@arcgis/core/Graphic',
-      '@arcgis/core/geometry/Point',
-      '@arcgis/core/geometry/Polyline',
-      '@arcgis/core/geometry/Polygon',
-      '@arcgis/core/symbols/SimpleMarkerSymbol',
-      '@arcgis/core/symbols/SimpleLineSymbol',
-      '@arcgis/core/symbols/SimpleFillSymbol'
-    ],
     exclude: ['@arcgis/core']
   },
   define: {
@@ -29,10 +15,16 @@ export default defineConfig({
       allow: ['..']
     }
   },
+  resolve: {
+    alias: {
+      // This helps with ESRI module resolution
+      '@arcgis/core': '@arcgis/core'
+    }
+  },
   build: {
     rollupOptions: {
       external: (id) => {
-        // Don't bundle @arcgis/core modules during build
+        // Don't bundle @arcgis/core modules during build - they should be loaded from CDN
         return id.includes('@arcgis/core')
       }
     }
