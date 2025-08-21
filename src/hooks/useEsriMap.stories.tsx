@@ -95,7 +95,7 @@ const EsriMapHookDemo: React.FC<{
   );
 };
 
-const meta = {
+const meta: Meta<typeof EsriMapHookDemo> = {
   title: 'Hooks/useEsriMap',
   component: EsriMapHookDemo,
   parameters: {
@@ -139,7 +139,7 @@ const meta = {
     }
   },
   tags: ['autodocs']
-} satisfies Meta<typeof EsriMapHookDemo>;
+};
 
 export default meta;
 type Story = StoryObj<typeof meta>;
