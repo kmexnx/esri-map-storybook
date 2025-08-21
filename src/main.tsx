@@ -1,11 +1,1 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import '@arcgis/core/assets/esri/themes/light/main.css'
-import './index.css'
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+import React from 'react';\nimport ReactDOM from 'react-dom/client';\nimport App from './App.tsx';\n\n// ESRI Configuration - this is crucial for proper asset loading\nimport esriConfig from '@arcgis/core/config.js';\n\n// Set the ESRI assets path - this resolves the module loading issues\nesriConfig.assetsPath = '/assets';\n\n// Import ESRI CSS after configuration\nimport '@arcgis/core/assets/esri/themes/light/main.css';\nimport './index.css';\n\nReactDOM.createRoot(document.getElementById('root')!).render(\n  <React.StrictMode>\n    <App />\n  </React.StrictMode>,\n)\n
