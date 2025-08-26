@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEsriMap } from '../hooks/useEsriMap';
-import { MapLayer, MapCoordinates } from '../types/map.types';
+import { MapLayer, MapCoordinates, MarkerData } from '../types/map.types';
+import SimpleMarkerSymbol from '@arcgis/core/symbols/SimpleMarkerSymbol';
 
 interface DemoPageProps {
   initialCoordinates?: MapCoordinates;
@@ -43,6 +44,15 @@ const DEFAULT_FEATURE_LAYERS: MapLayer[] = [
   }
 ];
 
+// Sample marker data with the exact structure requested
+const SAMPLE_MARKERS: MarkerData[] = [
+  { latitude: 40.12, longitude: -104.111, title: 'Denver North', description: 'Sample location north of Denver' },
+  { latitude: 39.7392, longitude: -104.9903, title: 'Downtown Denver', description: 'Denver city center' },
+  { latitude: 39.481112520084416, longitude: -104.48777395663238, title: 'Denver Tech', description: 'Tech center area' },
+  { latitude: 40.7128, longitude: -74.0060, title: 'New York', description: 'NYC location' },
+  { latitude: 34.0522, longitude: -118.2437, title: 'Los Angeles', description: 'LA location' }
+];
+
 const BASEMAP_OPTIONS = [
   { value: 'streets-navigation-vector', label: 'Streets' },
   { value: 'satellite', label: 'Satellite' },
@@ -60,6 +70,13 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
   const [zoomLevel, setZoomLevel] = useState(9);
   const [layers, setLayers] = useState<MapLayer[]>(DEFAULT_FEATURE_LAYERS);
   const [coordinates, setCoordinates] = useState(initialCoordinates);
+  const [markers, setMarkers] = useState<MarkerData[]>(SAMPLE_MARKERS);
+  const [newMarker, setNewMarker] = useState<{ latitude: string; longitude: string; title: string }>({
+    latitude: '',
+    longitude: '',
+    title: ''
+  });
+  const [showMarkersPanel, setShowMarkersPanel] = useState(false);
 
   const { 
     mapRef, 
@@ -76,15 +93,47 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
     basemap: selectedBasemap,
     onMapLoad: (view) => {
       console.log('Demo map loaded:', view);
+      // Add all markers to the map when it loads
+      displayAllMarkers();
     },
     onMapClick: (event) => {
       console.log('Map clicked at:', event.mapPoint);
-      // Add a marker at clicked location
       if (event.mapPoint) {
-        addMarker(event.mapPoint.longitude, event.mapPoint.latitude);
+        const newMarkerData: MarkerData = {
+          latitude: event.mapPoint.latitude,
+          longitude: event.mapPoint.longitude,
+          title: `Clicked Point ${markers.length + 1}`,
+          description: `Added by clicking at ${event.mapPoint.latitude.toFixed(4)}, ${event.mapPoint.longitude.toFixed(4)}`
+        };
+        setMarkers(prev => [...prev, newMarkerData]);
       }
     }
   });
+
+  // Display all markers on the map
+  const displayAllMarkers = () => {
+    if (!mapView) return;
+    
+    clearGraphics();
+    markers.forEach((marker, index) => {
+      const symbol = new SimpleMarkerSymbol({
+        color: index < 3 ? [255, 0, 0] : index < 6 ? [0, 255, 0] : [0, 0, 255],
+        size: 10,
+        outline: {
+          color: [255, 255, 255],
+          width: 2
+        }
+      });
+      addMarker(marker.longitude, marker.latitude, symbol);
+    });
+  };
+
+  // Update markers on map when markers array changes
+  useEffect(() => {
+    if (mapView && markers.length > 0) {
+      displayAllMarkers();
+    }
+  }, [markers, mapView]);
 
   const handleLayerToggle = (layerId: string) => {
     setLayers(prevLayers =>
@@ -107,6 +156,51 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
     const newCoords = { latitude: lat, longitude: lng };
     setCoordinates(newCoords);
     goToLocation(lng, lat, zoom);
+  };
+
+  const handleAddMarker = () => {
+    const lat = parseFloat(newMarker.latitude);
+    const lng = parseFloat(newMarker.longitude);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      alert('Please enter valid latitude and longitude values');
+      return;
+    }
+
+    const markerData: MarkerData = {
+      latitude: lat,
+      longitude: lng,
+      title: newMarker.title || `Custom Marker ${markers.length + 1}`,
+      description: `Added manually at ${lat}, ${lng}`
+    };
+
+    setMarkers(prev => [...prev, markerData]);
+    setNewMarker({ latitude: '', longitude: '', title: '' });
+  };
+
+  const handleDeleteMarker = (index: number) => {
+    setMarkers(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLoadSampleData = () => {
+    setMarkers(SAMPLE_MARKERS);
+  };
+
+  const handleClearAllMarkers = () => {
+    setMarkers([]);
+    clearGraphics();
+  };
+
+  const exportMarkersJson = () => {
+    const markersJson = markers.map(({ latitude, longitude }) => ({ latitude, longitude }));
+    const dataStr = JSON.stringify(markersJson, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = 'markers.json';
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
   };
 
   const predefinedLocations = [
@@ -140,6 +234,21 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
         }}>
           {isLoading ? '⏳ Loading...' : '✅ Ready'}
         </div>
+        <button
+          onClick={() => setShowMarkersPanel(!showMarkersPanel)}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: showMarkersPanel ? '#1976d2' : '#e3f2fd',
+            color: showMarkersPanel ? 'white' : '#1976d2',
+            border: `1px solid ${showMarkersPanel ? '#1976d2' : '#1976d2'}`,
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          📍 Markers ({markers.length})
+        </button>
       </div>
 
       <div style={{ display: 'flex', gap: '20px', height }}>
@@ -161,13 +270,13 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
             position: 'absolute',
             top: '10px',
             left: '10px',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            padding: '10px',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            padding: '12px',
             borderRadius: '8px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
+            gap: '12px',
             minWidth: '200px'
           }}>
             <div>
@@ -224,32 +333,20 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
                 ))}
               </div>
             </div>
-            
-            <button
-              onClick={clearGraphics}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#d32f2f',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              Clear Markers
-            </button>
           </div>
         </div>
 
-        {/* Feature Layers Panel - Upper Right Corner */}
+        {/* Feature Layers Panel */}
         <div style={{
-          width: '300px',
+          width: showMarkersPanel ? '280px' : '300px',
           backgroundColor: 'white',
           border: '2px solid #ddd',
           borderRadius: '8px',
           padding: '20px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
         }}>
           <h3 style={{ margin: '0 0 15px 0', color: '#1976d2', borderBottom: '2px solid #e3f2fd', paddingBottom: '10px' }}>
             📋 Feature Layers
@@ -312,17 +409,213 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
               <li>✅ Interactive zoom controls</li>
               <li>✅ Hosted feature layer toggle</li>
               <li>✅ Click to add markers</li>
-              <li>✅ Quick navigation</li>
-              <li>✅ Layer opacity visualization</li>
+              <li>✅ Markers management panel</li>
+              <li>✅ JSON export functionality</li>
             </ul>
           </div>
-
-          <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#fff3e0', borderRadius: '6px' }}>
-            <p style={{ margin: 0, fontSize: '11px', color: '#f57c00' }}>
-              💡 <strong>Tip:</strong> Click anywhere on the map to add markers. Use the layer checkboxes to show/hide different data sets.
-            </p>
-          </div>
         </div>
+
+        {/* Markers Management Panel */}
+        {showMarkersPanel && (
+          <div style={{
+            width: '350px',
+            backgroundColor: 'white',
+            border: '2px solid #1976d2',
+            borderRadius: '8px',
+            padding: '20px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: '#1976d2' }}>📍 Markers Management</h3>
+              <span style={{ fontSize: '12px', color: '#666', backgroundColor: '#e3f2fd', padding: '4px 8px', borderRadius: '12px' }}>
+                {markers.length} markers
+              </span>
+            </div>
+
+            {/* Add New Marker Form */}
+            <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#495057' }}>➕ Add New Marker</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="Latitude (e.g., 40.12)"
+                  value={newMarker.latitude}
+                  onChange={(e) => setNewMarker(prev => ({ ...prev, latitude: e.target.value }))}
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
+                />
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="Longitude (e.g., -104.111)"
+                  value={newMarker.longitude}
+                  onChange={(e) => setNewMarker(prev => ({ ...prev, longitude: e.target.value }))}
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Title (optional)"
+                  value={newMarker.title}
+                  onChange={(e) => setNewMarker(prev => ({ ...prev, title: e.target.value }))}
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
+                />
+                <button
+                  onClick={handleAddMarker}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Add Marker
+                </button>
+              </div>
+            </div>
+
+            {/* Markers List */}
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#495057' }}>📋 Current Markers</h4>
+              {markers.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#6c757d', textAlign: 'center', padding: '20px' }}>
+                  No markers yet. Click on the map or add manually above.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {markers.map((marker, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '10px',
+                        border: '1px solid #dee2e6',
+                        borderRadius: '6px',
+                        backgroundColor: '#ffffff',
+                        fontSize: '12px'
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', color: '#495057' }}>
+                          {marker.title || `Marker ${index + 1}`}
+                        </div>
+                        <div style={{ color: '#6c757d', fontSize: '11px' }}>
+                          {marker.latitude.toFixed(4)}, {marker.longitude.toFixed(4)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleGoToLocation(marker.latitude, marker.longitude, 14)}
+                        style={{
+                          padding: '4px 6px',
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontSize: '10px',
+                          marginRight: '6px'
+                        }}
+                      >
+                        Go
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMarker(index)}
+                        style={{
+                          padding: '4px 6px',
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          fontSize: '10px'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={handleLoadSampleData}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: '#17a2b8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                📝 Load Sample Data
+              </button>
+              <button
+                onClick={exportMarkersJson}
+                disabled={markers.length === 0}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: markers.length === 0 ? '#6c757d' : '#ffc107',
+                  color: markers.length === 0 ? '#fff' : '#212529',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: markers.length === 0 ? 'not-allowed' : 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                📤 Export JSON
+              </button>
+              <button
+                onClick={handleClearAllMarkers}
+                disabled={markers.length === 0}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: markers.length === 0 ? '#6c757d' : '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: markers.length === 0 ? 'not-allowed' : 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                🗑️ Clear All
+              </button>
+            </div>
+
+            {/* JSON Preview */}
+            <div style={{ padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #dee2e6' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#495057' }}>📄 JSON Structure Preview:</h4>
+              <pre style={{ 
+                margin: 0, 
+                fontSize: '10px', 
+                color: '#495057', 
+                backgroundColor: '#ffffff', 
+                padding: '8px', 
+                borderRadius: '4px',
+                border: '1px solid #dee2e6',
+                maxHeight: '100px',
+                overflowY: 'auto'
+              }}>
+                {JSON.stringify(
+                  markers.slice(0, 2).map(({ latitude, longitude }) => ({ latitude, longitude })), 
+                  null, 
+                  2
+                )}
+                {markers.length > 2 && '\n// ... more markers'}
+              </pre>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Status Bar */}
@@ -345,6 +638,9 @@ export const EsriDemoPage: React.FC<DemoPageProps> = ({
         </div>
         <div>
           🗂️ Active Layers: {layers.filter(l => l.visible).length}/{layers.length}
+        </div>
+        <div>
+          📍 Markers: {markers.length}
         </div>
         <div>
           🎨 Basemap: {BASEMAP_OPTIONS.find(b => b.value === selectedBasemap)?.label}
