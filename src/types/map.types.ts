@@ -36,3 +36,12 @@ export interface EsriMapViewProps extends UseEsriMapOptions {
   width?: string;
   className?: string;
 }
+
+// New marker interface for the demo
+export interface MarkerData {
+  latitude: number;
+  longitude: number;
+  id?: string;
+  title?: string;
+  description?: string;
+}
